@@ -11,7 +11,7 @@
 - 支持生成 9:16 手机壁纸，生成壁纸时，如果没有额外的说明，默认生成各种造型堆叠的壁纸
 - 不要求指定模型、API 或图片服务商,但配合GPT-image2效果更佳
 
-## 安装（一条命令）
+## 安装
 
 ```bash
 npx skills add https://github.com/gasoooline/pet-head-art
