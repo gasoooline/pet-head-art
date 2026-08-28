@@ -1,0 +1,96 @@
+# Pet Head Art
+
+用同一只猫或狗的真实照片，生成身份特征稳定的宠物头像、主题贴纸和手机壁纸。
+
+这个 Skill 不绑定具体模型或图片服务。它会优先使用 Agent 当前已经具备的参考图生图或图片编辑能力，并通过身份特征锁定、单张校准和逐张质检，尽量保留宠物的脸型、眼睛、瞳孔、口鼻、耳朵、毛色边界和独特花纹。
+
+## 主要能力
+
+- 根据一张或多张宠物照片生成同一只宠物的新造型
+- 区分宠物身份参考图和配饰、服装、画风参考图，避免串脸
+- 默认生成干净的 1:1 头像，也支持贴纸和自定义比例
+- 先生成一张样图校准，再批量生成不同主题
+- 将审核通过的透明素材确定性地排版成 9:16 手机壁纸
+- 不要求指定模型、API 或图片服务商
+
+## 快捷安装
+
+### 复制给你的 Agent
+
+复制下面整段文字，直接发送给支持 Skills 的 Agent：
+
+```text
+请安装并启用这个 GitHub Skill：
+https://github.com/gasoooline/pet-head-art/tree/main/skills/pet-head-art
+
+请使用你环境中可用的 Skill 安装器，从这个 GitHub 子目录安装，安装名保持为 pet-head-art。安装完成后验证 SKILL.md 可以正常读取，并告诉我安装位置和何时可以开始使用。如果已经存在同名 Skill，请先检查并说明更新方式，不要直接覆盖。
+```
+
+### 终端一键安装
+
+已经安装 Node.js 的用户也可以运行：
+
+```bash
+npx --yes skills add gasoooline/pet-head-art --skill pet-head-art --global --yes
+```
+
+这会把 `pet-head-art` 安装到当前用户的全局 Skills。只想安装到当前项目时，移除 `--global`：
+
+```bash
+npx --yes skills add gasoooline/pet-head-art --skill pet-head-art --yes
+```
+
+安装完成后，请在下一轮对话中调用该 Skill；部分 Agent 可能需要重启或新建对话后才能发现新安装的 Skill。
+
+## 使用方法
+
+上传一张或多张同一只宠物的清晰照片，然后直接描述想要的造型或壁纸。例如：
+
+```text
+使用 $pet-head-art，把我上传的猫生成一个戴红色针织帽的 1:1 头像。保留它左右不对称的脸部花纹和原本的眼睛比例。
+```
+
+```text
+使用 $pet-head-art，基于我上传的狗狗照片生成 6 个不同配饰的透明贴纸，再排成一张 1440 x 2560 的手机壁纸。
+```
+
+```text
+使用 $pet-head-art，参考第二张图的头饰设计，但宠物身份只能来自第一组照片。先生成一张样图让我确认。
+```
+
+为了获得更稳定的结果，建议提供：
+
+- 正面或接近正面的清晰照片
+- 能看清眼睛、口鼻、耳朵和主要花纹的原图
+- 同一只宠物在相近年龄段的 2 至 4 张照片
+- 单独上传的配饰或风格参考图，并说明它们不属于宠物身份参考
+
+## 工作方式
+
+1. 将宠物照片标记为身份参考，将配饰和画风图片标记为设计参考。
+2. 从照片中提取一份具体的身份特征描述，包括脸型、五官比例和不对称花纹。
+3. 先生成一张 1:1 样图，检查身份一致性和配饰结构。
+4. 样图通过后，每个主题分别生成，且始终重新使用原始宠物照片作为身份来源。
+5. 对眼睛、瞳孔、口鼻、耳朵、毛色边界、配饰和多余肢体进行逐张质检。
+6. 壁纸任务会先生成透明素材，再通过脚本排版，避免在拼图阶段重新绘制宠物。
+
+## 环境要求
+
+- 支持加载 Skills 的 Agent
+- Agent 已具备可接收参考图片的生图或图片编辑能力
+- 仅在合成壁纸时需要 Python 3 和 [Pillow](https://pypi.org/project/pillow/)
+
+Skill 不会自行要求或复用其他图片服务的 API Key。若 Agent 准备把宠物照片发送到用户尚未选择的外部服务，应先说明目标服务并征得确认。
+
+## 仓库结构
+
+```text
+skills/pet-head-art/
+├── SKILL.md                        # Agent 工作流和质量标准
+├── agents/openai.yaml              # Skill 展示信息和默认提示词
+├── references/prompt-template.md   # 身份锁定提示词模板
+├── references/wallpaper-layout.md  # 默认壁纸排版规范
+└── scripts/compose_wallpaper.py    # 壁纸合成脚本
+```
+
+Skill 入口：[skills/pet-head-art/SKILL.md](skills/pet-head-art/SKILL.md)
