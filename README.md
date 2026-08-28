@@ -13,34 +13,13 @@
 - 将审核通过的透明素材确定性地排版成 9:16 手机壁纸
 - 不要求指定模型、API 或图片服务商
 
-## 快捷安装
-
-### 复制给你的 Agent
-
-复制下面整段文字，直接发送给支持 Skills 的 Agent：
-
-```text
-请安装并启用这个 GitHub Skill：
-https://github.com/gasoooline/pet-head-art/tree/main/skills/pet-head-art
-
-请使用你环境中可用的 Skill 安装器，从这个 GitHub 子目录安装，安装名保持为 pet-head-art。安装完成后验证 SKILL.md 可以正常读取，并告诉我安装位置和何时可以开始使用。如果已经存在同名 Skill，请先检查并说明更新方式，不要直接覆盖。
-```
-
-### 终端一键安装
-
-已经安装 Node.js 的用户也可以运行：
+## 安装（一条命令）
 
 ```bash
-npx --yes skills add gasoooline/pet-head-art --skill pet-head-art --global --yes
+npx skills add https://github.com/gasoooline/pet-head-art
 ```
 
-这会把 `pet-head-art` 安装到当前用户的全局 Skills。只想安装到当前项目时，移除 `--global`：
-
-```bash
-npx --yes skills add gasoooline/pet-head-art --skill pet-head-art --yes
-```
-
-安装完成后，请在下一轮对话中调用该 Skill；部分 Agent 可能需要重启或新建对话后才能发现新安装的 Skill。
+命令会自动发现并安装 `pet-head-art`。安装完成后，请在下一轮对话中调用该 Skill；部分 Agent 可能需要重启或新建对话后才能发现它。
 
 ## 使用方法
 
