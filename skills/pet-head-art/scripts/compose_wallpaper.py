@@ -9,7 +9,7 @@ from pathlib import Path
 import random
 import warnings
 
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageOps
 
 
 MAX_CANVAS_PIXELS = 40_000_000
@@ -67,17 +67,6 @@ def fit_long_edge(image: Image.Image, target: int) -> Image.Image:
     return image.resize(size, Image.Resampling.LANCZOS)
 
 
-def add_outline(image: Image.Image, width: int) -> Image.Image:
-    if width <= 0:
-        return image
-    padded = ImageOps.expand(image, border=width * 2, fill=(0, 0, 0, 0))
-    kernel = width * 2 + 1
-    outline_alpha = padded.getchannel("A").filter(ImageFilter.MaxFilter(kernel))
-    outline = Image.new("RGBA", padded.size, (255, 255, 255, 0))
-    outline.putalpha(outline_alpha)
-    return Image.alpha_composite(outline, padded)
-
-
 def compose_stack(canvas: Image.Image, sources: list[Image.Image], args: argparse.Namespace) -> None:
     rng = random.Random(args.seed)
     base = max(64, round(args.width * args.tile_scale))
@@ -94,7 +83,6 @@ def compose_stack(canvas: Image.Image, sources: list[Image.Image], args: argpars
         source = sources[deck[index % len(deck)]]
         scale = rng.uniform(0.72, 1.28)
         tile = fit_long_edge(source, round(base * scale))
-        tile = add_outline(tile, args.outline)
         angle = rng.uniform(-args.rotation, args.rotation)
         tile = tile.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True)
         x = round(center_x - tile.width / 2)
@@ -158,7 +146,6 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--tile-scale", type=float, default=0.46, help="Stack tile size as a fraction of canvas width")
     parser.add_argument("--rotation", type=float, default=16.0, help="Maximum absolute stack rotation in degrees")
-    parser.add_argument("--outline", type=int, default=6, help="Gapless white outline grown directly from the cutout edge")
     parser.add_argument("--background-removal", choices=("auto", "never"), default="auto")
     parser.add_argument("--require-alpha", action="store_true", help="Reject opaque inputs that were not cut out")
     parser.add_argument("--columns", type=int, default=2)
@@ -169,10 +156,8 @@ def main() -> None:
 
     if args.width <= 0 or args.height <= 0 or args.columns <= 0:
         parser.error("width, height, and columns must be positive")
-    if args.gap < 0 or args.padding < 0 or args.outline < 0:
-        parser.error("gap, padding, and outline must be non-negative")
-    if args.outline > 100:
-        parser.error("outline must not exceed 100 pixels")
+    if args.gap < 0 or args.padding < 0:
+        parser.error("gap and padding must be non-negative")
     if not 0.2 <= args.tile_scale <= 0.8:
         parser.error("tile-scale must be between 0.2 and 0.8")
     if not 0 <= args.rotation <= 30:
