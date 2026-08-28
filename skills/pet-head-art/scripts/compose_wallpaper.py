@@ -9,7 +9,7 @@ from pathlib import Path
 import random
 import warnings
 
-from PIL import Image, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageOps
 
 
 MAX_CANVAS_PIXELS = 40_000_000
@@ -67,40 +67,6 @@ def fit_long_edge(image: Image.Image, target: int) -> Image.Image:
     return image.resize(size, Image.Resampling.LANCZOS)
 
 
-def add_outline(image: Image.Image, width: int) -> Image.Image:
-    if width <= 0:
-        return image
-    padded = ImageOps.expand(image, border=width * 2, fill=(0, 0, 0, 0))
-    kernel = width * 2 + 1
-    outline_alpha = padded.getchannel("A").filter(ImageFilter.MaxFilter(kernel))
-    outline = Image.new("RGBA", padded.size, (255, 255, 255, 0))
-    outline.putalpha(outline_alpha)
-    return Image.alpha_composite(outline, padded)
-
-
-def add_shadow(image: Image.Image, blur: int, offset_y: int, opacity: int) -> Image.Image:
-    if blur <= 0 or opacity <= 0:
-        return image
-    padding = blur * 3 + abs(offset_y)
-    size = (image.width + padding * 2, image.height + padding * 2)
-    shadow_alpha = Image.new("L", size, 0)
-    shadow_alpha.paste(image.getchannel("A"), (padding, padding + offset_y))
-    shadow_alpha = shadow_alpha.filter(ImageFilter.GaussianBlur(blur))
-    shadow_alpha = shadow_alpha.point(lambda value: round(value * opacity / 255))
-    shadow = Image.new("RGBA", size, (72, 72, 72, 0))
-    shadow.putalpha(shadow_alpha)
-    foreground = Image.new("RGBA", size, (0, 0, 0, 0))
-    foreground.alpha_composite(image, (padding, padding))
-    return Image.alpha_composite(shadow, foreground)
-
-
-def finish_tile(image: Image.Image, args: argparse.Namespace, angle: float = 0) -> Image.Image:
-    tile = add_outline(image, args.outline)
-    if angle:
-        tile = tile.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True)
-    return add_shadow(tile, args.shadow_blur, args.shadow_offset_y, args.shadow_opacity)
-
-
 def compose_stack(canvas: Image.Image, sources: list[Image.Image], args: argparse.Namespace) -> None:
     rng = random.Random(args.seed)
     base = max(64, round(args.width * args.tile_scale))
@@ -118,7 +84,7 @@ def compose_stack(canvas: Image.Image, sources: list[Image.Image], args: argpars
         scale = rng.uniform(0.72, 1.28)
         tile = fit_long_edge(source, round(base * scale))
         angle = rng.uniform(-args.rotation, args.rotation)
-        tile = finish_tile(tile, args, angle)
+        tile = tile.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True)
         x = round(center_x - tile.width / 2)
         y = round(center_y - tile.height / 2)
         canvas.alpha_composite(tile, (x, y))
@@ -153,19 +119,9 @@ def compose_grid(canvas: Image.Image, sources: list[Image.Image], args: argparse
         raise ValueError("padding/gap leave no room for tiles")
     cell_w = usable_width // args.columns
     cell_h = usable_height // rows
-    shadow_margin = (
-        args.shadow_blur * 3 + abs(args.shadow_offset_y)
-        if args.shadow_blur and args.shadow_opacity
-        else 0
-    )
-    effect_margin = args.outline * 2 + shadow_margin
-    tile_area = (cell_w - effect_margin * 2, cell_h - effect_margin * 2)
-    if tile_area[0] <= 0 or tile_area[1] <= 0:
-        raise ValueError("cells are too small for the configured outline and shadow")
 
     for index, source in enumerate(sources):
-        tile = ImageOps.contain(source, tile_area, Image.Resampling.LANCZOS)
-        tile = finish_tile(tile, args)
+        tile = ImageOps.contain(source, (cell_w, cell_h), Image.Resampling.LANCZOS)
         x = args.padding + (index % args.columns) * (cell_w + args.gap) + (cell_w - tile.width) // 2
         y = args.padding + (index // args.columns) * (cell_h + args.gap) + (cell_h - tile.height) // 2
         canvas.alpha_composite(tile, (x, y))
@@ -190,10 +146,6 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--tile-scale", type=float, default=0.46, help="Stack tile size as a fraction of canvas width")
     parser.add_argument("--rotation", type=float, default=16.0, help="Maximum absolute stack rotation in degrees")
-    parser.add_argument("--outline", type=int, default=8, help="Gapless white outline grown directly from the cutout edge")
-    parser.add_argument("--shadow-blur", type=int, default=14, help="Soft shadow blur radius in pixels")
-    parser.add_argument("--shadow-offset-y", type=int, default=8, help="Downward shadow offset in pixels")
-    parser.add_argument("--shadow-opacity", type=int, default=48, help="Shadow alpha from 0 to 255")
     parser.add_argument("--background-removal", choices=("auto", "never"), default="auto")
     parser.add_argument("--require-alpha", action="store_true", help="Reject opaque inputs that were not cut out")
     parser.add_argument("--columns", type=int, default=2)
@@ -204,16 +156,8 @@ def main() -> None:
 
     if args.width <= 0 or args.height <= 0 or args.columns <= 0:
         parser.error("width, height, and columns must be positive")
-    if args.gap < 0 or args.padding < 0 or args.outline < 0 or args.shadow_blur < 0:
-        parser.error("gap, padding, outline, and shadow blur must be non-negative")
-    if args.outline > 100:
-        parser.error("outline must not exceed 100 pixels")
-    if args.shadow_blur > 100:
-        parser.error("shadow blur must not exceed 100 pixels")
-    if not -100 <= args.shadow_offset_y <= 100:
-        parser.error("shadow offset must be between -100 and 100 pixels")
-    if not 0 <= args.shadow_opacity <= 255:
-        parser.error("shadow opacity must be between 0 and 255")
+    if args.gap < 0 or args.padding < 0:
+        parser.error("gap and padding must be non-negative")
     if not 0.2 <= args.tile_scale <= 0.8:
         parser.error("tile-scale must be between 0.2 and 0.8")
     if not 0 <= args.rotation <= 30:
