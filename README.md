@@ -19,6 +19,16 @@ npx skills add https://github.com/gasoooline/pet-head-art
 
 命令会自动发现并安装 `pet-head-art`。安装完成后，请在下一轮对话中调用该 Skill；部分 Agent 可能需要重启或新建对话后才能发现它。
 
+## 更新
+
+已安装的用户可以运行：
+
+```bash
+npx skills update pet-head-art
+```
+
+如果此前安装在全局 Skills，请在命令末尾加上 `--global`。更新后通常会自动生效；如果 Agent 仍在使用旧版本，请重启或新建对话。
+
 ## 使用方法
 
 上传一张或多张同一只宠物的清晰照片，然后直接描述想要的造型或壁纸。例如：
